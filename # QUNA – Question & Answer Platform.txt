@@ -1,0 +1,130 @@
+# QUNA – Question & Answer Platform
+
+QUNA is a full-stack Question and Answer platform where users can ask questions, share knowledge, and answer questions posted by others.
+
+## Features
+
+- User Registration and Login
+- Ask and Post Questions
+- View All Questions
+- View Individual Questions
+- Post Answers
+- View Answers for Each Question
+- Lavender-themed, responsive user interface
+
+## Tech Stack
+
+**Frontend**
+- React.js
+- CSS
+- Vite
+
+**Backend**
+- Python
+- FastAPI
+- REST APIs
+
+**Database**
+- MySQL
+- mysql-connector-python
+
+## Project Structure
+
+```text
+QUNA/
+├── backend/
+│   ├── main.py
+│   ├── database.py
+│   ├── schemas.py
+│   ├── create_tables.py
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   └── package.json
+│
+└── .gitignore
+```
+
+## Installation and Setup
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/siddhitiwari0802/QUNA.git
+cd QUNA
+```
+
+### 2. Backend Setup
+
+```bash
+cd backend
+python -m venv venv
+```
+
+Activate the virtual environment:
+
+**Windows:**
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure MySQL
+
+Create a database:
+
+```sql
+CREATE DATABASE quna_db;
+```
+
+Create a `.env` file inside the backend folder:
+
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_NAME=quna_db
+```
+
+Run:
+
+```bash
+python create_tables.py
+```
+
+### 4. Start Backend
+
+```bash
+uvicorn main:app --reload
+```
+
+Backend URL: http://127.0.0.1:8000
+
+API Documentation: http://127.0.0.1:8000/docs
+
+### 5. Frontend Setup
+
+Open another terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend URL: http://localhost:5173
+
+## Project Status
+
+Currently under development. More features and improvements will be added.
+
+## Author
+
+M Siddhi Tiwari
