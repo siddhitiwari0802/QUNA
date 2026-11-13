@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UserRegister(BaseModel):
@@ -11,12 +11,16 @@ class UserLogin(BaseModel):
     password: str
 
 class QuestionCreate(BaseModel):
-    title:str
-    description:str
-    user_id:int
+    title: str
+    description: str
+    category: str = "Other"
+    tags: list[str] = Field(default_factory=list)
+   
 
 
 class AnswerCreate(BaseModel):
     content: str
     question_id: int
-    user_id: int
+
+class AnswerUpdate(BaseModel):
+    content: str
