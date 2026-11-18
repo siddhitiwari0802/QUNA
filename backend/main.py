@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from database import get_db_connection
-from schemas import UserRegister, UserLogin , QuestionCreate , AnswerCreate, AnswerUpdate
+from schemas import UserRegister, UserLogin , QuestionCreate , AnswerCreate, AnswerUpdate, VoteCreate
 from security import hash_password, verify_password
 from auth import create_access_token, get_current_user
 
@@ -545,6 +545,94 @@ def create_answer(
 
     
 
+# Vote on an Answer API
+@app.post("/answers/vote")
+def vote_on_answer(
+    vote: VoteCreate,
+    current_user_id: int = Depends(get_current_user)
+):
+    if vote.vote_type not in (1, -1):
+        raise HTTPException(
+            status_code=400,
+            detail="Vote type must be 1 or -1"
+        )
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    try:
+        # Check whether the answer exists
+        cursor.execute(
+            "SELECT id FROM answers WHERE id = %s",
+            (vote.answer_id,)
+        )
+
+        answer = cursor.fetchone()
+
+        if answer is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Answer not found"
+            )
+
+        # Check whether the user has already voted
+        cursor.execute(
+            """
+            SELECT vote_type FROM answer_votes
+            WHERE answer_id = %s AND user_id = %s
+            """,
+            (vote.answer_id, current_user_id)
+        )
+
+        existing_vote = cursor.fetchone()
+
+        if existing_vote is None:
+            # Add a new vote
+            cursor.execute(
+                """
+                INSERT INTO answer_votes
+                (answer_id, user_id, vote_type)
+                VALUES (%s, %s, %s)
+                """,
+                (vote.answer_id, current_user_id, vote.vote_type)
+            )
+            message = "Vote added successfully!"
+
+        elif existing_vote[0] == vote.vote_type:
+            # Remove the existing vote
+            cursor.execute(
+                """
+                DELETE FROM answer_votes
+                WHERE answer_id = %s AND user_id = %s
+                """,
+                (vote.answer_id, current_user_id)
+            )
+            message = "Vote removed successfully!"
+
+        else:
+            # Change the existing vote
+            cursor.execute(
+                """
+                UPDATE answer_votes
+                SET vote_type = %s
+                WHERE answer_id = %s AND user_id = %s
+                """,
+                (vote.vote_type, vote.answer_id, current_user_id)
+            )
+            message = "Vote updated successfully!"
+
+        connection.commit()
+
+        return {"message": message}
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        cursor.close()
+        connection.close()
+
 
 
 # Get Answers for a Particular Question
@@ -563,10 +651,34 @@ def get_answers(question_id: int):
                 answers.question_id,
                 answers.user_id,
                 users.name AS username,
-                answers.created_at
+                answers.created_at,
+
+                COALESCE(SUM(
+                    CASE WHEN answer_votes.vote_type = 1
+                    THEN 1 ELSE 0 END
+                ), 0) AS upvotes,
+
+                COALESCE(SUM(
+                    CASE WHEN answer_votes.vote_type = -1
+                    THEN 1 ELSE 0 END
+                ), 0) AS downvotes
+
             FROM answers
             JOIN users ON answers.user_id = users.id
+
+            LEFT JOIN answer_votes
+                ON answers.id = answer_votes.answer_id
+
             WHERE answers.question_id = %s
+
+            GROUP BY
+                answers.id,
+                answers.content,
+                answers.question_id,
+                answers.user_id,
+                users.name,
+                answers.created_at
+
             ORDER BY answers.created_at DESC
             """,
             (question_id,)
@@ -574,13 +686,14 @@ def get_answers(question_id: int):
 
         answers = cursor.fetchall()
 
-        return {
-            "answers": answers
-        }
+        return {"answers": answers}
 
     finally:
         cursor.close()
         connection.close()
+
+
+
 
 
 @app.get("/my-answers")

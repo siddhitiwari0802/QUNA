@@ -1054,3 +1054,30 @@ button {
 .dark-mode .pagination span {
   color: #f5f0ff;
 }
+
+.answer-voting {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.vote-btn {
+  padding: 7px 14px;
+  border: 1px solid #d8c8f0;
+  border-radius: 20px;
+  background: transparent;
+  color: #7652a3;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.vote-btn:hover {
+  background: #f0e8fa;
+}
+
+.vote-btn.active {
+  background: #7652a3;
+  color: white;
+  border-color: #7652a3;
+}

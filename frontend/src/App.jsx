@@ -18,6 +18,7 @@ function App() {
   const [editTags, setEditTags] = useState([]);
   const [editTagInput, setEditTagInput] = useState("");
   const [answers, setAnswers] = useState([]);
+  const [userVotes, setUserVotes] = useState({});
   const [answerContent, setAnswerContent] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -282,6 +283,57 @@ async function handleDeleteAnswer(answerId) {
 
   } catch (error) {
     console.error("Delete answer error:", error);
+    alert("Could not connect to the server.");
+  }
+}
+
+
+
+async function handleVote(answerId, voteType) {
+  if (!accessToken) {
+    alert("Please log in to vote.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/answers/vote",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          answer_id: answerId,
+          vote_type: voteType,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.detail || "Voting failed.");
+      return;
+    }
+
+    setUserVotes((previousVotes) => ({
+      ...previousVotes,
+      [answerId]:
+        previousVotes[answerId] === voteType ? 0 : voteType,
+    }));
+
+    // Refresh answer counts
+    const answersResponse = await fetch(
+      `http://127.0.0.1:8000/questions/${selectedQuestion.id}/answers`
+    );
+
+    const answersData = await answersResponse.json();
+    setAnswers(answersData.answers);
+
+  } catch (error) {
+    console.error("Voting error:", error);
     alert("Could not connect to the server.");
   }
 }
@@ -772,6 +824,21 @@ async function handleAnswerSubmit(e) {
       <div className="answer-card" key={answer.id}>
         <p>{answer.content}</p>
         <p>Answered by: {answer.username}</p>
+        <div className="answer-voting">
+  <button
+    className={userVotes[answer.id] === 1 ? "vote-btn active" : "vote-btn"}
+    onClick={() => handleVote(answer.id, 1)}
+  >
+    ▲ {answer.upvotes || 0}
+  </button>
+
+  <button
+    className={userVotes[answer.id] === -1 ? "vote-btn active" : "vote-btn"}
+    onClick={() => handleVote(answer.id, -1)}
+  >
+    ▼ {answer.downvotes || 0}
+  </button>
+</div>
 
         {loggedInUser &&
           Number(answer.user_id) === Number(loggedInUser.id) && (

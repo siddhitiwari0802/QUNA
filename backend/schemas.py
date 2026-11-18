@@ -24,3 +24,7 @@ class AnswerCreate(BaseModel):
 
 class AnswerUpdate(BaseModel):
     content: str
+
+class VoteCreate(BaseModel):
+    answer_id: int
+    vote_type: int
