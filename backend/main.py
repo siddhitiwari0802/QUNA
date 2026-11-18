@@ -470,17 +470,34 @@ def get_single_question(question_id: int):
         connection.close()
 
 
+
 # Create Answer API
 @app.post("/answers")
 def create_answer(
     answer: AnswerCreate,
     current_user_id: int = Depends(get_current_user)
 ):
-
     connection = get_db_connection()
     cursor = connection.cursor()
 
     try:
+        # Get the owner of the question
+        cursor.execute(
+            "SELECT user_id FROM questions WHERE id = %s",
+            (answer.question_id,)
+        )
+
+        question = cursor.fetchone()
+
+        if question is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Question not found"
+            )
+
+        question_owner_id = question[0]
+
+        # Insert the answer
         cursor.execute(
             """
             INSERT INTO answers (content, question_id, user_id)
@@ -493,18 +510,40 @@ def create_answer(
             )
         )
 
-        connection.commit()
-
         answer_id = cursor.lastrowid
+
+        # Notify the question owner (not when answering your own question)
+        if question_owner_id != current_user_id:
+            cursor.execute(
+                """
+                INSERT INTO notifications
+                (user_id, message, question_id, answer_id)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (
+                    question_owner_id,
+                    "Someone answered your question!",
+                    answer.question_id,
+                    answer_id
+                )
+            )
+
+        connection.commit()
 
         return {
             "message": "Answer posted successfully!",
             "answer_id": answer_id
         }
 
+    except Exception:
+        connection.rollback()
+        raise
+
     finally:
         cursor.close()
         connection.close()
+
+    
 
 
 
@@ -542,6 +581,75 @@ def get_answers(question_id: int):
     finally:
         cursor.close()
         connection.close()
+
+
+@app.get("/my-answers")
+def get_my_answers(current_user_id: int = Depends(get_current_user)):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT
+                answers.id,
+                answers.content,
+                answers.question_id,
+                answers.user_id,
+                answers.created_at,
+                questions.title AS question_title
+            FROM answers
+            JOIN questions ON answers.question_id = questions.id
+            WHERE answers.user_id = %s
+            ORDER BY answers.created_at DESC
+        """, (current_user_id,))
+
+        answers = cursor.fetchall()
+
+        return {"answers": answers}
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
+
+# Get Notifications API
+@app.get("/notifications")
+def get_notifications(
+    current_user_id: int = Depends(get_current_user)
+):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT
+                notifications.id,
+                notifications.message,
+                notifications.question_id,
+                notifications.answer_id,
+                notifications.is_read,
+                notifications.created_at,
+                questions.title AS question_title
+            FROM notifications
+            JOIN questions
+                ON notifications.question_id = questions.id
+            WHERE notifications.user_id = %s
+            ORDER BY notifications.created_at DESC
+            """,
+            (current_user_id,)
+        )
+
+        notifications = cursor.fetchall()
+
+        return {"notifications": notifications}
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
 
 
 @app.put("/answers/{answer_id}")

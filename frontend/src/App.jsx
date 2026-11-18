@@ -6,6 +6,8 @@ function App() {
 
   const [questions, setQuestions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedTag, setSelectedTag] = useState("All");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [editTitle, setEditTitle] = useState("");
@@ -18,6 +20,14 @@ function App() {
   const [answers, setAnswers] = useState([]);
   const [answerContent, setAnswerContent] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileQuestions, setProfileQuestions] = useState([]);
+  const [profileAnswers, setProfileAnswers] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [darkMode, setDarkMode] = useState(
+  localStorage.getItem("quna-theme") === "dark"
+);
 
   const [title, setTitle] = useState('');
 
@@ -25,6 +35,9 @@ function App() {
   const [category, setCategory] = useState("Other");
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const questionsPerPage = 6;
 
   const [message, setMessage] = useState('');
   const [showRegister, setShowRegister] = useState(false);
@@ -54,14 +67,45 @@ const [loggedInUser, setLoggedInUser] = useState(() => {
       });
   }, []);
 
-  const filteredQuestions = questions.filter((question) => {
+ const filteredQuestions = questions.filter((question) => {
   const search = searchTerm.toLowerCase();
 
-  return (
+  const matchesSearch =
     question.title.toLowerCase().includes(search) ||
-    question.description.toLowerCase().includes(search)
-  );
+    question.description.toLowerCase().includes(search);
+
+  const matchesCategory =
+    selectedCategory === "All" ||
+    question.category === selectedCategory;
+
+  const matchesTag =
+    selectedTag === "All" ||
+    (question.tags || []).some(
+      (tag) => tag.toLowerCase() === selectedTag.toLowerCase()
+    );
+
+  return matchesSearch && matchesCategory && matchesTag;
 });
+
+const sortedQuestions = [...filteredQuestions].sort((a, b) => {
+  if (sortOrder === "newest") {
+    return new Date(b.created_at) - new Date(a.created_at);
+  }
+
+  return new Date(a.created_at) - new Date(b.created_at);
+});
+
+
+const totalPages = Math.ceil(
+  sortedQuestions.length / questionsPerPage
+);
+
+const startIndex = (currentPage - 1) * questionsPerPage;
+
+const currentQuestions = sortedQuestions.slice(
+  startIndex,
+  startIndex + questionsPerPage
+);
 
 
 async function handleRegister(e) {
@@ -390,6 +434,73 @@ async function handleSubmit(e) {
   }
 }
 
+
+async function fetchProfileData() {
+  if (!loggedInUser) return;
+
+  try {
+    const questionsResponse = await fetch(
+      "http://127.0.0.1:8000/questions"
+    );
+
+    const questionsData = await questionsResponse.json();
+
+    const userQuestions = questionsData.questions.filter(
+      (question) =>
+        Number(question.user_id) === Number(loggedInUser.id)
+    );
+
+    setProfileQuestions(userQuestions);
+const answersResponse = await fetch(
+  "http://127.0.0.1:8000/my-answers",
+  {
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  }
+);
+
+const answersData = await answersResponse.json();
+
+setProfileAnswers(
+  Array.isArray(answersData.answers)
+    ? answersData.answers
+    : []
+);
+
+  } catch (error) {
+    console.error("Profile error:", error);
+  }
+}
+
+
+async function fetchNotifications() {
+  if (!accessToken) return;
+
+  try {
+    const response = await fetch(
+      "http://127.0.0.1:8000/notifications",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.ok) {
+      setNotifications(data.notifications || []);
+    } else {
+      console.error("Failed to fetch notifications:", data);
+    }
+
+  } catch (error) {
+    console.error("Notification error:", error);
+  }
+}
+
+
 async function openQuestion(questionId) {
   try {
     const response = await fetch(
@@ -472,7 +583,7 @@ async function handleAnswerSubmit(e) {
 
   return (
 
-    <div className="app">
+    <div className={`App ${darkMode ? "dark-mode" : ""}`}>
       {selectedQuestion ? (
   <section className="question-details">
     <button
@@ -732,12 +843,78 @@ async function handleAnswerSubmit(e) {
         <h1 className="logo">QUNA<span>.</span></h1>
 
         <div className="nav-links">
-          <a href="#home">Home</a>
-          <a href="#questions">Explore</a>
-          <a href="#ask">Ask Question</a>
-        </div>
+        <a href="#home">Home</a>
+        <a href="#questions">Explore</a>
+        <a href="#ask">Ask Question</a>
+
+         {loggedInUser && (
+          <a
+          href="#profile"
+          onClick={() => {
+          setShowProfile(true);
+          fetchProfileData();
+          }}
+          >
+         My Profile
+        </a>
+        )}
+        </div>v
 
         <div className="nav-buttons">
+          {loggedInUser && (
+  <button
+    className="notification-btn"
+    onClick={() => {
+      setShowNotifications(!showNotifications);
+      fetchNotifications();
+    }}
+  >
+    🔔
+    {notifications.filter((n) => !n.is_read).length > 0 && (
+      <span className="notification-count">
+        {notifications.filter((n) => !n.is_read).length}
+      </span>
+    )}
+  </button>
+)}
+
+<button
+  className="theme-toggle"
+  onClick={() => {
+    const newTheme = !darkMode;
+    setDarkMode(newTheme);
+    localStorage.setItem(
+      "quna-theme",
+      newTheme ? "dark" : "light"
+    );
+  }}
+>
+  {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
+</button>
+
+         {showNotifications && loggedInUser && (
+  <div className="notification-dropdown">
+    <h3>Notifications</h3>
+
+    {notifications.length > 0 ? (
+      notifications.map((notification) => (
+        <div
+          className={`notification-item ${
+            notification.is_read ? "" : "unread"
+          }`}
+          key={notification.id}
+        >
+          <p>{notification.message}</p>
+          <small>{notification.question_title}</small>
+        </div>
+      ))
+    ) : (
+      <p className="no-notifications">
+        No notifications yet.
+      </p>
+    )}
+  </div>
+)}
          {loggedInUser ? (
   <>
     <span className="welcome-user">
@@ -1021,6 +1198,64 @@ async function handleAnswerSubmit(e) {
 )}
 
 
+{/* User Profile Section */}
+{showProfile && loggedInUser && (
+  <section className="profile-section" id="profile">
+    <div className="profile-card">
+      <h2>My Profile 💜</h2>
+
+      <div className="profile-info">
+        <h3>{loggedInUser.name}</h3>
+        <p>{loggedInUser.email}</p>
+      </div>
+
+      <div className="profile-stats">
+        <div>
+          <h3>{profileQuestions.length}</h3>
+          <p>Questions Posted</p>
+        </div>
+
+        <div>
+          <h3>{profileAnswers.length}</h3>
+          <p>Answers Given</p>
+        </div>
+      </div>
+
+      <h3>My Questions</h3>
+
+      {profileQuestions.length > 0 ? (
+        profileQuestions.map((question) => (
+          <div
+            className="profile-question"
+            key={question.id}
+            onClick={() => {
+              setShowProfile(false);
+              openQuestion(question.id);
+            }}
+          >
+            <h4>{question.title}</h4>
+            <span>{question.category}</span>
+          </div>
+        ))
+      ) : (
+        <p>You haven't posted any questions yet.</p>
+      )}
+
+      <h3>My Answers</h3>
+
+      {profileAnswers.length > 0 ? (
+        profileAnswers.map((answer) => (
+          <div className="profile-question" key={answer.id}>
+            <p>{answer.content}</p>
+          </div>
+        ))
+      ) : (
+        <p>You haven't given any answers yet.</p>
+      )}
+
+    </div>
+  </section>
+)}
 
 
       {/* Questions Section */}
@@ -1029,12 +1264,76 @@ async function handleAnswerSubmit(e) {
           <div>
             <p className="section-tag">COMMUNITY DISCUSSIONS</p>
             <h2>Explore Questions</h2>
+            <div className="filter-container">
+
+  <select
+    value={selectedCategory}
+    onChange={(e) => {
+  setSelectedCategory(e.target.value);
+  setCurrentPage(1);
+}}
+  >
+    <option value="All">All Categories</option>
+    <option value="Programming">Programming</option>
+    <option value="Python">Python</option>
+    <option value="Java">Java</option>
+    <option value="Web Development">Web Development</option>
+    <option value="Database">Database</option>
+    <option value="Artificial Intelligence">Artificial Intelligence</option>
+    <option value="Machine Learning">Machine Learning</option>
+    <option value="Data Science">Data Science</option>
+    <option value="Other">Other</option>
+  </select>
+
+  <select
+    value={selectedTag}
+    onChange={(e) => {
+  setSelectedTag(e.target.value);
+  setCurrentPage(1);
+}}
+  >
+    <option value="All">All Tags</option>
+
+    {[...new Set(
+      questions.flatMap((question) => question.tags || [])
+    )].map((tag) => (
+      <option value={tag} key={tag}>
+        {tag}
+      </option>
+    ))}
+  </select>
+
+  <select
+  value={sortOrder}
+  onChange={(e) => setSortOrder(e.target.value)}
+>
+  <option value="newest">Newest First</option>
+  <option value="oldest">Oldest First</option>
+</select>
+
+  <button
+    type="button"
+    className="secondary-btn"
+    onClick={() => {
+      setSelectedCategory("All");
+      setSelectedTag("All");
+      setSearchTerm("");
+      setCurrentPage(1);
+    }}
+  >
+    Clear Filters
+  </button>
+
+</div>
             <input
                 type="text"
                 className="search-input"
                 placeholder="Search questions by title or description..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+  setSearchTerm(e.target.value);
+  setCurrentPage(1);
+}}
             />
           </div>
 
@@ -1043,8 +1342,8 @@ async function handleAnswerSubmit(e) {
 
         <div className="question-list">
           
-{filteredQuestions.length > 0 ? (
-  filteredQuestions.map((question) => (
+{sortedQuestions.length > 0 ? (
+  currentQuestions.map((question) => (
     <div
       className="question-card"
       key={question.id}
@@ -1080,6 +1379,28 @@ async function handleAnswerSubmit(e) {
       ? "No matching questions found. Try another keyword."
       : "No questions available yet. Be the first to ask!"}
   </p>
+)}
+
+{totalPages > 1 && (
+  <div className="pagination">
+    <button
+      disabled={currentPage === 1}
+      onClick={() => setCurrentPage(currentPage - 1)}
+    >
+      Previous
+    </button>
+
+    <span>
+      Page {currentPage} of {totalPages}
+    </span>
+
+    <button
+      disabled={currentPage === totalPages}
+      onClick={() => setCurrentPage(currentPage + 1)}
+    >
+      Next
+    </button>
+  </div>
 )}
  
 
