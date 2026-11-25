@@ -11,7 +11,7 @@ def get_db_connection():
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
         database=os.getenv("DB_NAME"),
-        port=int(os.getenv("DB_PORT"))
+        port=int(os.getenv("DB_PORT")),
         ssl_ca=os.path.join(os.path.dirname(__file__), "ca.pem"),
         ssl_verify_cert=True
         
