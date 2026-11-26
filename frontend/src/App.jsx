@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "${API_BASE_URL}0";
+  import.meta.env.VITE_API_URL || "${API_BASE_URL}";
 
 import { useEffect, useState } from 'react';
 import './App.css';
