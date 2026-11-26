@@ -1,6 +1,5 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "${API_BASE_URL}";
-
+const API_BASE_URL = import.meta.env.VITE_API_URL ;
+console.log("ACCESSED API BASE URL " , API_BASE_URL);
 import { useEffect, useState } from 'react';
 import './App.css';
 
@@ -58,17 +57,32 @@ const [loggedInUser, setLoggedInUser] = useState(() => {
   const savedUser = sessionStorage.getItem("logged_in_user");
   return savedUser ? JSON.parse(savedUser) : null;
 });
-
+  console.log("Base url " , API_BASE_URL);
   useEffect(() => {
-    fetch(`${API_BASE_URL}/questions`)
-      .then(response => response.json())
-      .then(data => {
+  fetch(`${API_BASE_URL}/questions`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log("QUESTIONS API RESPONSE:", data);
+
+      if (Array.isArray(data)) {
+        setQuestions(data);
+      } else if (Array.isArray(data.questions)) {
         setQuestions(data.questions);
-      })
-      .catch(error => {
-        console.error("Error fetching questions:", error);
-      });
-  }, []);
+      } else {
+        console.error("Unexpected API response:", data);
+        setQuestions([]);
+      }
+    })
+    .catch(error => {
+      console.error("Error fetching questions:", error);
+      setQuestions([]);
+    });
+}, []);
 
  const filteredQuestions = questions.filter((question) => {
   const search = searchTerm.toLowerCase();
@@ -124,7 +138,7 @@ async function handleRegister(e) {
   }
 
   try {
-    const response = await fetch("${API_BASE_URL}/register", {
+    const response = await fetch(`${API_BASE_URL}/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -166,7 +180,7 @@ async function handleLogin(e) {
   }
 
   try {
-    const response = await fetch("${API_BASE_URL}/login", {
+    const response = await fetch(`${API_BASE_URL}/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -299,7 +313,7 @@ async function handleVote(answerId, voteType) {
 
   try {
     const response = await fetch(
-      "${API_BASE_URL}/answers/vote",
+      `${API_BASE_URL}/answers/vote`,
       {
         method: "POST",
         headers: {
@@ -444,7 +458,7 @@ async function handleSubmit(e) {
   }
 
   try {
-    const response = await fetch("${API_BASE_URL}/questions", {
+    const response = await fetch(`${API_BASE_URL}/questions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -466,7 +480,7 @@ async function handleSubmit(e) {
     }
 
     const updatedResponse = await fetch(
-      "${API_BASE_URL}/questions"
+      `${API_BASE_URL}/questions`
     );
 
     const updatedData = await updatedResponse.json();
@@ -494,7 +508,7 @@ async function fetchProfileData() {
 
   try {
     const questionsResponse = await fetch(
-      "${API_BASE_URL}/questions"
+      `${API_BASE_URL}/questions`
     );
 
     const questionsData = await questionsResponse.json();
@@ -506,7 +520,7 @@ async function fetchProfileData() {
 
     setProfileQuestions(userQuestions);
 const answersResponse = await fetch(
-  "${API_BASE_URL}/my-answers",
+  `${API_BASE_URL}/my-answers`,
   {
     headers: {
       Authorization: `Bearer ${accessToken}`
@@ -533,7 +547,7 @@ async function fetchNotifications() {
 
   try {
     const response = await fetch(
-      "${API_BASE_URL}/notifications",
+      `${API_BASE_URL}/notifications`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`
@@ -636,7 +650,7 @@ async function handleAnswerSubmit(e) {
 
 
   return (
-
+  <>
     <div className={`App ${darkMode ? "dark-mode" : ""}`}>
       {selectedQuestion ? (
   <section className="question-details">
@@ -927,7 +941,7 @@ async function handleAnswerSubmit(e) {
          My Profile
         </a>
         )}
-        </div>v
+        </div>
 
         <div className="nav-buttons">
           {loggedInUser && (
@@ -1485,6 +1499,7 @@ async function handleAnswerSubmit(e) {
 )}
 
     </div>
+    </>
   );
 }
 
