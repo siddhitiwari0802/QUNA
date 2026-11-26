@@ -27,6 +27,7 @@ def home():
 def register_user(user: UserRegister):
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
+    print("Received a Post Request on the /register")
 
     try:
         # Check if email already exists
@@ -68,6 +69,7 @@ def register_user(user: UserRegister):
 # Login API
 @app.post("/login")
 def login_user(user: UserLogin):
+    print("Received a post request on /login ")
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
