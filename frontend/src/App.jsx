@@ -1,3 +1,5 @@
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "${API_BASE_URL}0";
 
 import { useEffect, useState } from 'react';
 import './App.css';
@@ -58,7 +60,7 @@ const [loggedInUser, setLoggedInUser] = useState(() => {
 });
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/questions')
+    fetch(`${API_BASE_URL}/questions`)
       .then(response => response.json())
       .then(data => {
         setQuestions(data.questions);
@@ -122,7 +124,7 @@ async function handleRegister(e) {
   }
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/register", {
+    const response = await fetch("${API_BASE_URL}/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -164,7 +166,7 @@ async function handleLogin(e) {
   }
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/login", {
+    const response = await fetch("${API_BASE_URL}/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -213,7 +215,7 @@ async function handleEditAnswer(e) {
 
   try {
     const response = await fetch(
-      `http://127.0.0.1:8000/answers/${editingAnswer.id}`,
+      `${API_BASE_URL}/answers/${editingAnswer.id}`,
       {
         method: "PUT",
         headers: {
@@ -239,7 +241,7 @@ async function handleEditAnswer(e) {
     setEditAnswerContent("");
 
     const updatedResponse = await fetch(
-      `http://127.0.0.1:8000/questions/${selectedQuestion.id}/answers`
+      `${API_BASE_URL}/questions/${selectedQuestion.id}/answers`
     );
     const updatedData = await updatedResponse.json();
     setAnswers(updatedData.answers);
@@ -259,7 +261,7 @@ async function handleDeleteAnswer(answerId) {
 
   try {
     const response = await fetch(
-      `http://127.0.0.1:8000/answers/${answerId}`,
+      `${API_BASE_URL}/answers/${answerId}`,
       {
         method: "DELETE",
         headers: {
@@ -297,7 +299,7 @@ async function handleVote(answerId, voteType) {
 
   try {
     const response = await fetch(
-      "http://127.0.0.1:8000/answers/vote",
+      "${API_BASE_URL}/answers/vote",
       {
         method: "POST",
         headers: {
@@ -326,7 +328,7 @@ async function handleVote(answerId, voteType) {
 
     // Refresh answer counts
     const answersResponse = await fetch(
-      `http://127.0.0.1:8000/questions/${selectedQuestion.id}/answers`
+      `${API_BASE_URL}/questions/${selectedQuestion.id}/answers`
     );
 
     const answersData = await answersResponse.json();
@@ -349,7 +351,7 @@ async function handleEditQuestion(e) {
 
   try {
     const response = await fetch(
-      `http://127.0.0.1:8000/questions/${editingQuestion.id}`,
+      `${API_BASE_URL}/questions/${editingQuestion.id}`,
       {
         method: "PUT",
         headers: {
@@ -378,7 +380,7 @@ async function handleEditQuestion(e) {
     setSelectedQuestion(null);
 
     const updatedResponse = await fetch(
-      "http://127.0.0.1:8000/questions"
+      "${API_BASE_URL}/questions"
     );
 
     const updatedData = await updatedResponse.json();
@@ -400,7 +402,7 @@ async function handleDeleteQuestion(questionId) {
 
   try {
     const response = await fetch(
-      `http://127.0.0.1:8000/questions/${questionId}`,
+      `${API_BASE_URL}/questions/${questionId}`,
       {
         method: "DELETE",
         headers: {
@@ -442,7 +444,7 @@ async function handleSubmit(e) {
   }
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/questions", {
+    const response = await fetch("${API_BASE_URL}/questions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -464,7 +466,7 @@ async function handleSubmit(e) {
     }
 
     const updatedResponse = await fetch(
-      "http://127.0.0.1:8000/questions"
+      "${API_BASE_URL}/questions"
     );
 
     const updatedData = await updatedResponse.json();
@@ -492,7 +494,7 @@ async function fetchProfileData() {
 
   try {
     const questionsResponse = await fetch(
-      "http://127.0.0.1:8000/questions"
+      "${API_BASE_URL}/questions"
     );
 
     const questionsData = await questionsResponse.json();
@@ -504,7 +506,7 @@ async function fetchProfileData() {
 
     setProfileQuestions(userQuestions);
 const answersResponse = await fetch(
-  "http://127.0.0.1:8000/my-answers",
+  "${API_BASE_URL}/my-answers",
   {
     headers: {
       Authorization: `Bearer ${accessToken}`
@@ -531,7 +533,7 @@ async function fetchNotifications() {
 
   try {
     const response = await fetch(
-      "http://127.0.0.1:8000/notifications",
+      "${API_BASE_URL}/notifications",
       {
         headers: {
           Authorization: `Bearer ${accessToken}`
@@ -556,7 +558,7 @@ async function fetchNotifications() {
 async function openQuestion(questionId) {
   try {
     const response = await fetch(
-      `http://127.0.0.1:8000/questions/${questionId}`
+      `${API_BASE_URL}/questions/${questionId}`
     );
 
     if (!response.ok) {
@@ -568,7 +570,7 @@ async function openQuestion(questionId) {
 
     setSelectedQuestion(data);
     const answerResponse = await fetch(
-  `http://127.0.0.1:8000/questions/${questionId}/answers`
+  `${API_BASE_URL}/questions/${questionId}/answers`
 );
 
 if (!answerResponse.ok) {
@@ -596,7 +598,7 @@ async function handleAnswerSubmit(e) {
   }
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/answers", {
+    const response = await fetch("${API_BASE_URL}/answers", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -616,7 +618,7 @@ async function handleAnswerSubmit(e) {
     }
 
     const answerResponse = await fetch(
-      `http://127.0.0.1:8000/questions/${selectedQuestion.id}/answers`
+      `${API_BASE_URL}/questions/${selectedQuestion.id}/answers`
     );
 
     const answerData = await answerResponse.json();
